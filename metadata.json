@@ -1,0 +1,8 @@
+{
+  "name": "DriveBeat",
+  "description": "A Progressive Web App (PWA) music player for in-car use with massive touch targets, a dark automotive theme, and local/stream playlist support.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
