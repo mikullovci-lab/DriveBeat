@@ -1,38 +1,39 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" viewBox="0 0 595.28 521.36">
-  <!-- Generator: Adobe Illustrator 29.1.0, SVG Export Plug-In . SVG Version: 2.1.0 Build 142)  -->
+<?xml version="1.0" encoding="utf-8"?>
+<svg width="512px" height="512px" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <style>
-      .st0 {
-        fill: url(#linear-gradient2);
-      }
+    <!-- Background Radial Gradient -->
+    <radialGradient id="bg-radial-gradient" cx="50%" cy="50%" r="75%">
+      <stop offset="0%" stop-color="#1c0f32" />
+      <stop offset="65%" stop-color="#06020c" />
+      <stop offset="100%" stop-color="#000000" />
+    </radialGradient>
 
-      .st1 {
-        fill: url(#linear-gradient1);
-      }
-
-      .st2 {
-        fill: url(#linear-gradient);
-      }
-    </style>
-    <linearGradient id="linear-gradient" x1="159.39" y1="256.88" x2="260.09" y2="466.03" gradientUnits="userSpaceOnUse">
+    <!-- Logo Gradients -->
+    <linearGradient id="logo-linear-gradient" x1="159.39" y1="256.88" x2="260.09" y2="466.03" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#4547e0"/>
       <stop offset=".12" stop-color="#4040cb"/>
       <stop offset=".37" stop-color="#343097"/>
       <stop offset=".73" stop-color="#211544"/>
       <stop offset=".92" stop-color="#160613"/>
     </linearGradient>
-    <linearGradient id="linear-gradient1" x1="-8458.47" y1="-8210.44" x2="-8315.33" y2="-7967.98" gradientTransform="translate(8782.82 8458.77)" gradientUnits="userSpaceOnUse">
+    <linearGradient id="logo-linear-gradient1" x1="-8458.47" y1="-8210.44" x2="-8315.33" y2="-7967.98" gradientTransform="translate(8782.82 8458.77)" gradientUnits="userSpaceOnUse">
       <stop offset=".02" stop-color="#e22d63"/>
       <stop offset=".45" stop-color="#893ba9"/>
       <stop offset=".81" stop-color="#4547e0"/>
     </linearGradient>
-    <linearGradient id="linear-gradient2" x1="335.07" y1="337.59" x2="338.17" y2="439.84" gradientUnits="userSpaceOnUse">
+    <linearGradient id="logo-linear-gradient2" x1="335.07" y1="337.59" x2="338.17" y2="439.84" gradientUnits="userSpaceOnUse">
       <stop offset=".02" stop-color="#2b1428"/>
       <stop offset=".81" stop-color="#160613"/>
     </linearGradient>
   </defs>
-  <path class="st2" d="M275.69,419.32l80.51-153.87-95-176.89c-7.54-14.04-27.73-13.88-35.05.28L55.91,418.2c-8.96,17.34,3.62,38.01,23.14,38.01h216.83c-17.71-1.49-28.65-20.72-20.19-36.89Z"/>
-  <path class="st1" d="M558.08,412.34l-122.55-231.76c-7.37-13.93-27.29-14.04-34.81-.19l-44.51,85.07,37.16,69.19c10.02,18.67,10.19,41.08.43,59.88l-21.3,41.08c-6.57,12.66-19.64,20.61-33.91,20.61h-42.69c.72.06,1.46.1,2.2.1h233.5c22.58,0,37.04-24.02,26.49-43.97Z"/>
-  <path class="st0" d="M372.49,435.6l21.3-41.08c9.75-18.81,9.59-41.22-.43-59.88l-37.16-69.19-80.51,153.87c-8.46,16.17,2.48,35.4,20.19,36.89h42.69c14.27,0,27.34-7.95,33.91-20.61Z"/>
+
+  <!-- Background -->
+  <rect width="512" height="512" fill="url(#bg-radial-gradient)" />
+
+  <!-- Center-aligned logo paths -->
+  <svg x="80" y="80" width="352" height="352" viewBox="0 0 595.28 521.36">
+    <path fill="url(#logo-linear-gradient)" d="M275.69,419.32l80.51-153.87-95-176.89c-7.54-14.04-27.73-13.88-35.05.28L55.91,418.2c-8.96,17.34,3.62,38.01,23.14,38.01h216.83c-17.71-1.49-28.65-20.72-20.19-36.89Z"/>
+    <path fill="url(#logo-linear-gradient1)" d="M558.08,412.34l-122.55-231.76c-7.37-13.93-27.29-14.04-34.81-.19l-44.51,85.07,37.16,69.19c10.02,18.67,10.19,41.08.43,59.88l-21.3,41.08c-6.57,12.66-19.64,20.61-33.91,20.61h-42.69c.72.06,1.46.1,2.2.1h233.5c22.58,0,37.04-24.02,26.49-43.97Z"/>
+    <path fill="url(#logo-linear-gradient2)" d="M372.49,435.6l21.3-41.08c9.75-18.81,9.59-41.22-.43-59.88l-37.16-69.19-80.51,153.87c-8.46,16.17,2.48,35.4,20.19,36.89h42.69c14.27,0,27.34-7.95,33.91-20.61Z"/>
+  </svg>
 </svg>

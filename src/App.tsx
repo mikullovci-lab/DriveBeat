@@ -111,6 +111,16 @@ export default function App() {
   const [view, setView] = useState<'player' | 'playlist'>('player');
   const [shuffledIndices, setShuffledIndices] = useState<number[]>([]);
   const [isScanning, setIsScanning] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showInstallBanner, setShowInstallBanner] = useState<boolean>(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const triggerToast = (message: string) => {
+    setToastMessage(message);
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 3000);
+  };
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const streamAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -139,6 +149,43 @@ export default function App() {
       } catch (e) {}
     }
   }, []);
+
+  // Listen for PWA installation capability
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      // Only show banner if they have not already dismissed it in this session
+      const isDismissed = sessionStorage.getItem('pwa-dismissed') === 'true';
+      if (!isDismissed) {
+        setShowInstallBanner(true);
+      }
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    // If already running standalone (already installed), do not show banner
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+    if (isStandalone) {
+      setShowInstallBanner(false);
+    }
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallPWA = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    try {
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log(`User response to install: ${outcome}`);
+    } catch (err) {
+      console.error("Installation choice errored:", err);
+    }
+    setDeferredPrompt(null);
+    setShowInstallBanner(false);
+  };
 
   // Save state on change
   useEffect(() => {
@@ -832,6 +879,45 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#020104] text-[#fafa] font-sans flex overflow-hidden pb-safe select-none">
+      {/* PWA Install Promotion Banner */}
+      {showInstallBanner && deferredPrompt && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 w-[92%] max-w-lg bg-[#0e091b]/90 backdrop-blur-3xl border border-white/[0.08] rounded-[2rem] p-4 pr-5 flex items-center gap-4 shadow-[0_24px_50px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.05)] z-[9999] transition-all duration-500">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#1c0f32] to-[#000000] border border-white/[0.08] shadow-inner flex items-center justify-center flex-shrink-0">
+            <DriveBeatLogo className="w-8 h-8 drop-shadow-[0_4px_10px_rgba(219,31,255,0.4)]" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[14px] font-bold tracking-wide text-white">Install DriveBeat App</p>
+            <p className="text-[11px] text-white/50 mt-0.5 font-medium leading-normal">Enjoy offline music, full screen &amp; smoother stereo audio.</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={handleInstallPWA}
+              className="px-4 py-2 bg-gradient-to-r from-[#4547e0] to-[#db1fff] hover:from-[#5659f0] hover:to-[#e438ff] active:scale-95 text-white text-[11px] font-bold uppercase tracking-wider rounded-xl transition-all shadow-[0_8px_20px_rgba(219,31,255,0.25)] flex-shrink-0"
+            >
+              Install
+            </button>
+            <button 
+              onClick={() => {
+                setShowInstallBanner(false);
+                sessionStorage.setItem('pwa-dismissed', 'true');
+              }}
+              className="w-8 h-8 rounded-full bg-white/[0.03] hover:bg-white/[0.08] active:scale-90 flex items-center justify-center text-white/40 hover:text-white transition-all border border-white/[0.05]"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-28 left-1/2 -translate-x-1/2 px-6 py-3 bg-[#0a0f24]/95 backdrop-blur-2xl border border-[#db1fff]/30 text-[#db1fff] text-[11px] font-bold tracking-widest uppercase rounded-full shadow-[0_12px_30px_rgba(219,31,255,0.15)] z-[10000] text-center whitespace-nowrap">
+          {toastMessage}
+        </div>
+      )}
       <audio 
         ref={audioRef}
         onTimeUpdate={(e) => {
@@ -864,7 +950,7 @@ export default function App() {
       />
       
       {/* Sidebar Navigation */}
-      <aside className="w-20 md:w-24 flex flex-col items-center py-8 bg-[#010102]/60 backdrop-blur-2xl border-r border-white/[0.03] z-30 shrink-0 shadow-[4px_0_32px_rgba(0,0,0,0.5)]">
+      <aside className="hidden md:flex w-20 md:w-24 flex-col items-center py-8 bg-[#010102]/60 backdrop-blur-2xl border-r border-white/[0.03] z-30 shrink-0 shadow-[4px_0_32px_rgba(0,0,0,0.5)]">
         <div className="text-white/80 mb-10 mt-2">
           <DriveBeatLogo className="w-10 h-10 md:w-12 md:h-12" />
         </div>
@@ -903,7 +989,16 @@ export default function App() {
         </div>
  
         <div className="mt-auto mb-2 w-full px-3">
-          <button className="w-full aspect-square flex flex-col items-center justify-center text-white/50 hover:text-white transition-all rounded-2xl md:rounded-[1.5rem] hover:animate-liquid-square hover:scale-105 hover:bg-white/5 duration-500">
+          <button 
+            onClick={() => {
+              if (deferredPrompt) {
+                handleInstallPWA();
+              } else {
+                triggerToast("DriveBeat is installed & running perfectly!");
+              }
+            }}
+            className="w-full aspect-square flex flex-col items-center justify-center text-white/50 hover:text-white transition-all rounded-2xl md:rounded-[1.5rem] hover:animate-liquid-square hover:scale-105 hover:bg-white/5 duration-500"
+          >
             <Settings size={28} strokeWidth={1.5} />
             <span className="text-[9px] md:text-[10px] mt-2 font-bold tracking-widest uppercase">Settings</span>
           </button>
@@ -962,7 +1057,7 @@ export default function App() {
         </div>
 
         {view === 'player' ? (
-          <div className="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto no-scrollbar relative z-10 justify-center">
+          <div className="flex-1 flex flex-col p-4 md:p-6 pb-28 md:pb-6 overflow-y-auto no-scrollbar relative z-10 justify-center">
             
             <div className="flex flex-col lg:grid lg:grid-cols-12 lg:gap-12 xl:gap-20 max-w-[28rem] lg:max-w-5xl w-full mx-auto mt-2 md:mt-4 lg:mt-0 items-center justify-center">
               
@@ -1120,7 +1215,7 @@ export default function App() {
             </div>
           </div>
         ) : (
-          <div className="flex-1 overflow-y-auto no-scrollbar flex flex-col p-6 md:p-8 relative z-10">
+          <div className="flex-1 overflow-y-auto no-scrollbar flex flex-col p-6 md:p-8 pb-32 md:pb-8 relative z-10">
             {/* Playlist Categories Chiclets Selector */}
             {playlists.length > 0 && (
               <div className="mb-6 max-w-3xl w-full mx-auto px-1 flex-shrink-0">
@@ -1225,7 +1320,7 @@ export default function App() {
         
         {/* Floating Global Mini-Player */}
         {view !== 'player' && tracks.length > 0 && currentIndex >= 0 && (
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-2xl bg-[#0a0f24]/90 backdrop-blur-2xl border border-white/[0.05] rounded-3xl p-3 pr-6 flex items-center shadow-[0_20px_40px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.05)] z-50">
+          <div className="absolute bottom-[5.5rem] md:bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-2xl bg-[#0a0f24]/90 backdrop-blur-2xl border border-white/[0.05] rounded-3xl p-3 pr-6 flex items-center shadow-[0_20px_40px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.05)] z-50 transition-all duration-300">
             <div className="w-14 h-14 rounded-2xl overflow-hidden bg-[#1a1f35] border border-white/5 shadow-inner relative flex-shrink-0 flex items-center justify-center">
               {currentMeta?.coverUrl ? (
                 <img src={currentMeta.coverUrl} className="w-full h-full object-cover" alt="" />
@@ -1270,6 +1365,62 @@ export default function App() {
             accept: ".mp3,.m3u,.m3u8"
           } as any}
         />
+
+        {/* Mobile Bottom Tab Bar */}
+        <nav className="fixed bottom-0 left-0 right-0 h-[4.5rem] bg-[#010102]/60 backdrop-blur-2xl border-t border-white/[0.05] z-50 flex items-center justify-around pb-safe px-6 shadow-[0_-8px_32px_rgba(0,0,0,0.5)] md:hidden">
+          {/* Songs Tab */}
+          <button 
+            onClick={() => setView('player')}
+            className={`flex flex-col items-center justify-center w-16 h-12 transition-all duration-300 relative ${view === 'player' ? 'text-[#db1fff]' : 'text-white/40 active:text-white'}`}
+          >
+            {view === 'player' && (
+              <div className="absolute -top-[1.25rem] w-8 h-[2px] bg-[#db1fff] shadow-[0_0_8px_#db1fff]" />
+            )}
+            <Music size={22} strokeWidth={view === 'player' ? 2 : 1.5} className={view === 'player' ? 'scale-110 drop-shadow-[0_0_10px_rgba(219,31,255,0.4)]' : ''} />
+            <span className="text-[9px] mt-1 font-bold tracking-wider uppercase">Songs</span>
+          </button>
+
+          {/* Playlist Tab */}
+          <button 
+            onClick={() => setView('playlist')}
+            className={`flex flex-col items-center justify-center w-16 h-12 transition-all duration-300 relative ${view === 'playlist' ? 'text-[#db1fff]' : 'text-white/40 active:text-white'}`}
+          >
+            {view === 'playlist' && (
+              <div className="absolute -top-[1.25rem] w-8 h-[2px] bg-[#db1fff] shadow-[0_0_8px_#db1fff]" />
+            )}
+            <ListMusic size={22} strokeWidth={view === 'playlist' ? 2 : 1.5} className={view === 'playlist' ? 'scale-110 drop-shadow-[0_0_10px_rgba(219,31,255,0.4)]' : ''} />
+            <span className="text-[9px] mt-1 font-bold tracking-wider uppercase">List</span>
+          </button>
+
+          {/* Load Tab */}
+          <button 
+            onClick={handleOpenFolder}
+            disabled={isScanning}
+            className="flex flex-col items-center justify-center w-16 h-12 text-white/40 active:text-white transition-all duration-300"
+          >
+            {isScanning ? (
+              <div className="w-5 h-5 border-2 border-[#db1fff] border-t-transparent rounded-full animate-spin mb-1" />
+            ) : (
+              <FolderOpen size={22} strokeWidth={1.5} />
+            )}
+            <span className="text-[9px] mt-1 font-bold tracking-wider uppercase">Load</span>
+          </button>
+
+          {/* Settings Tab */}
+          <button 
+            onClick={() => {
+              if (deferredPrompt) {
+                handleInstallPWA();
+              } else {
+                triggerToast("DriveBeat is installed & running perfectly!");
+              }
+            }}
+            className="flex flex-col items-center justify-center w-16 h-12 text-white/40 active:text-white transition-all duration-300"
+          >
+            <Settings size={22} strokeWidth={1.5} />
+            <span className="text-[9px] mt-1 font-bold tracking-wider uppercase">Settings</span>
+          </button>
+        </nav>
       </main>
     </div>
   );
