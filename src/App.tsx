@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   Play, Pause, SkipForward, SkipBack, Shuffle, Repeat, Repeat1, 
   FolderOpen, Music, ListMusic, ChevronLeft, ChevronDown, MoreVertical, Heart, ListPlus, MoreHorizontal, Settings,
-  Trash2, Edit3, Check, Plus, X, Share2
+  Trash2, Edit3, Check, Plus, X, Share2, RefreshCw
 } from 'lucide-react';
 // @ts-ignore
 import jsmediatags from 'jsmediatags/dist/jsmediatags.min.js';
@@ -953,6 +953,37 @@ export default function App() {
     }
   };
 
+  const handleForceUpdate = async () => {
+    triggerToast("Updating & resetting cache...");
+    if ('serviceWorker' in navigator) {
+      try {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (let registration of registrations) {
+          await registration.update();
+        }
+        
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          for (let key of keys) {
+            await caches.delete(key);
+          }
+        }
+        
+        triggerToast("Caches cleared! Reloading...");
+        setTimeout(() => {
+          window.location.reload();
+        }, 1200);
+      } catch (e) {
+        triggerToast("Forcing reload...");
+        setTimeout(() => {
+          window.location.reload();
+        }, 800);
+      }
+    } else {
+      window.location.reload();
+    }
+  };
+
   const formatTime = (seconds: number) => {
     if (isNaN(seconds)) return "0:00";
     const m = Math.floor(seconds / 60);
@@ -1708,36 +1739,47 @@ export default function App() {
               </div>
 
               {/* Actions Button Panel */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                
-                {/* Share App Button */}
-                <button
-                  onClick={handleShareApp}
-                  className="w-full h-13 rounded-2xl bg-gradient-to-r from-[#0099FF] to-[#db1fff] hover:opacity-90 active:scale-95 transition-all text-white font-bold text-sm flex items-center justify-center gap-2 shadow-[0_4px_15px_rgba(0,153,255,0.3)]"
-                >
-                  <Share2 size={16} />
-                  <span>Share DriveBeat</span>
-                </button>
-
-                {/* Install PWA Button / Status */}
-                {deferredPrompt ? (
+              <div className="flex flex-col gap-2.5 pt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  
+                  {/* Share App Button */}
                   <button
-                    onClick={() => {
-                      setShowSettingsModal(false);
-                      handleInstallPWA();
-                    }}
-                    className="w-full h-13 rounded-2xl bg-white/[0.06] hover:bg-white/[0.1] active:scale-95 border border-white/[0.08] transition-all text-white font-bold text-sm flex items-center justify-center gap-2"
+                    onClick={handleShareApp}
+                    className="w-full h-13 rounded-2xl bg-gradient-to-r from-[#0099FF] to-[#db1fff] hover:opacity-90 active:scale-95 transition-all text-white font-bold text-sm flex items-center justify-center gap-2 shadow-[0_4px_15px_rgba(0,153,255,0.3)]"
                   >
-                    <FolderOpen size={16} className="text-[#db1fff]" />
-                    <span>Install App</span>
+                    <Share2 size={16} />
+                    <span>Share DriveBeat</span>
                   </button>
-                ) : (
-                  <div className="w-full h-13 rounded-2xl bg-white/[0.02] border border-white/[0.05] text-white/40 font-bold text-xs flex items-center justify-center gap-2 select-none">
-                    <Check size={14} className="text-green-500" />
-                    <span>App is Installed</span>
-                  </div>
-                )}
 
+                  {/* Install PWA Button / Status */}
+                  {deferredPrompt ? (
+                    <button
+                      onClick={() => {
+                        setShowSettingsModal(false);
+                        handleInstallPWA();
+                      }}
+                      className="w-full h-13 rounded-2xl bg-white/[0.06] hover:bg-white/[0.1] active:scale-95 border border-white/[0.08] transition-all text-white font-bold text-sm flex items-center justify-center gap-2"
+                    >
+                      <FolderOpen size={16} className="text-[#db1fff]" />
+                      <span>Install App</span>
+                    </button>
+                  ) : (
+                    <div className="w-full h-13 rounded-2xl bg-white/[0.02] border border-white/[0.05] text-white/40 font-bold text-xs flex items-center justify-center gap-2 select-none">
+                      <Check size={14} className="text-green-500" />
+                      <span>App is Installed</span>
+                    </div>
+                  )}
+
+                </div>
+
+                {/* Force Update / Clear Cache Button */}
+                <button
+                  onClick={handleForceUpdate}
+                  className="w-full h-12 rounded-xl bg-white/[0.03] hover:bg-red-500/10 active:scale-95 border border-white/[0.06] hover:border-red-500/30 text-white/60 hover:text-red-400 transition-all text-xs font-bold flex items-center justify-center gap-2"
+                >
+                  <RefreshCw size={14} className="animate-spin-slow text-[#db1fff]" />
+                  <span>Check for Updates / Reset App Cache</span>
+                </button>
               </div>
 
               {/* Version watermark */}
