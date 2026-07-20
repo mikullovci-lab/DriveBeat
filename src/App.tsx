@@ -71,75 +71,28 @@ const cleanFileName = (filename: string) => {
 
 // DriveBeat Logo SVG Component: A futuristic combination of a steering wheel, vinyl groove, and high-fidelity sound waves
 const DriveBeatLogo = ({ className = "w-8 h-8" }) => (
-  <svg viewBox="0 0 200 200" className={className} xmlns="http://www.w3.org/2000/svg">
+  <svg viewBox="0 0 595.28 521.36" className={className} xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink">
     <defs>
-      <linearGradient id="dbGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#0099FF" />
-        <stop offset="50%" stopColor="#8A2BE2" />
-        <stop offset="100%" stopColor="#db1fff" />
+      <linearGradient id="logo-linear-gradient" x1="159.39" y1="256.88" x2="260.09" y2="466.03" gradientUnits="userSpaceOnUse">
+        <stop offset="0" stopColor="#4547e0"/>
+        <stop offset=".12" stopColor="#4040cb"/>
+        <stop offset=".37" stopColor="#343097"/>
+        <stop offset=".73" stopColor="#211544"/>
+        <stop offset=".92" stopColor="#160613"/>
+      </linearGradient>
+      <linearGradient id="logo-linear-gradient1" x1="-8458.47" y1="-8210.44" x2="-8315.33" y2="-7967.98" gradientTransform="translate(8782.82 8458.77)" gradientUnits="userSpaceOnUse">
+        <stop offset=".02" stopColor="#e22d63"/>
+        <stop offset=".45" stopColor="#893ba9"/>
+        <stop offset=".81" stopColor="#4547e0"/>
+      </linearGradient>
+      <linearGradient id="logo-linear-gradient2" x1="335.07" y1="337.59" x2="338.17" y2="439.84" gradientUnits="userSpaceOnUse">
+        <stop offset=".02" stopColor="#2b1428"/>
+        <stop offset=".81" stopColor="#160613"/>
       </linearGradient>
     </defs>
-    
-    {/* Outer Steering Wheel / Audio Dial Ring */}
-    <circle 
-      cx="100" 
-      cy="100" 
-      r="80" 
-      stroke="url(#dbGrad)" 
-      strokeWidth="6" 
-      fill="none" 
-      className="opacity-90"
-    />
-    
-    {/* Inner Vinyl Groove / Dashboard Gauge */}
-    <circle 
-      cx="100" 
-      cy="100" 
-      r="66" 
-      stroke="url(#dbGrad)" 
-      strokeWidth="2" 
-      strokeDasharray="8 6"
-      fill="none" 
-      className="opacity-40"
-    />
-
-    {/* Elegant Steering Wheel Spokes & Dynamic Music Waves */}
-    {/* Left Spoke */}
-    <path 
-      d="M 20 100 Q 55 100 70 100" 
-      stroke="url(#dbGrad)" 
-      strokeWidth="5" 
-      strokeLinecap="round"
-      className="opacity-80"
-    />
-    {/* Right Spoke */}
-    <path 
-      d="M 130 100 Q 145 100 180 100" 
-      stroke="url(#dbGrad)" 
-      strokeWidth="5" 
-      strokeLinecap="round"
-      className="opacity-80"
-    />
-    {/* Bottom Spoke */}
-    <path 
-      d="M 100 135 L 100 180" 
-      stroke="url(#dbGrad)" 
-      strokeWidth="5" 
-      strokeLinecap="round"
-      className="opacity-80"
-    />
-
-    {/* Glowing Soundwaves / Heartbeat in the center */}
-    {/* Line 1 */}
-    <line x1="80" y1="85" x2="80" y2="115" stroke="url(#dbGrad)" strokeWidth="4.5" strokeLinecap="round" />
-    {/* Line 2 */}
-    <line x1="90" y1="70" x2="90" y2="130" stroke="url(#dbGrad)" strokeWidth="4.5" strokeLinecap="round" />
-    {/* Line 3 (Center) */}
-    <line x1="100" y1="55" x2="100" y2="120" stroke="url(#dbGrad)" strokeWidth="4.5" strokeLinecap="round" />
-    {/* Line 4 */}
-    <line x1="110" y1="70" x2="110" y2="130" stroke="url(#dbGrad)" strokeWidth="4.5" strokeLinecap="round" />
-    {/* Line 5 */}
-    <line x1="120" y1="85" x2="120" y2="115" stroke="url(#dbGrad)" strokeWidth="4.5" strokeLinecap="round" />
+    <path fill="url(#logo-linear-gradient)" d="M275.69,419.32l80.51-153.87-95-176.89c-7.54-14.04-27.73-13.88-35.05.28L55.91,418.2c-8.96,17.34,3.62,38.01,23.14,38.01h216.83c-17.71-1.49-28.65-20.72-20.19-36.89Z"/>
+    <path fill="url(#logo-linear-gradient1)" d="M558.08,412.34l-122.55-231.76c-7.37-13.93-27.29-14.04-34.81-.19l-44.51,85.07,37.16,69.19c10.02,18.67,10.19,41.08.43,59.88l-21.3,41.08c-6.57,12.66-19.64,20.61-33.91,20.61h-42.69c.72.06,1.46.1,2.2.1h233.5c22.58,0,37.04-24.02,26.49-43.97Z"/>
+    <path fill="url(#logo-linear-gradient2)" d="M372.49,435.6l21.3-41.08c9.75-18.81,9.59-41.22-.43-59.88l-37.16-69.19-80.51,153.87c-8.46,16.17,2.48,35.4,20.19,36.89h42.69c14.27,0,27.34-7.95,33.91-20.61Z"/>
   </svg>
 );
 
@@ -868,14 +821,13 @@ export default function App() {
 
   // Calculate upcoming tracks
   const upcomingTracks = [];
-  if (tracks.length > 0) {
-    const nextIdx1 = isShuffle ? shuffledIndices[(shuffledIndices.indexOf(currentIndex) + 1) % tracks.length] : (currentIndex + 1) % tracks.length;
-    const nextIdx2 = isShuffle ? shuffledIndices[(shuffledIndices.indexOf(currentIndex) + 2) % tracks.length] : (currentIndex + 2) % tracks.length;
-    const nextIdx3 = isShuffle ? shuffledIndices[(shuffledIndices.indexOf(currentIndex) + 3) % tracks.length] : (currentIndex + 3) % tracks.length;
-    
-    if (tracks[nextIdx1]) upcomingTracks.push({ track: tracks[nextIdx1], index: nextIdx1 });
-    if (tracks[nextIdx2] && tracks.length > 2) upcomingTracks.push({ track: tracks[nextIdx2], index: nextIdx2 });
-    if (tracks[nextIdx3] && tracks.length > 3) upcomingTracks.push({ track: tracks[nextIdx3], index: nextIdx3 });
+  if (tracks.length > 1) {
+    for (let i = 1; i <= 4; i++) {
+      const idx = isShuffle 
+        ? shuffledIndices[(shuffledIndices.indexOf(currentIndex) + i) % tracks.length] 
+        : (currentIndex + i) % tracks.length;
+      upcomingTracks.push({ track: tracks[idx], index: idx });
+    }
   }
 
   return (
@@ -1010,32 +962,38 @@ export default function App() {
         </div>
 
         {view === 'player' ? (
-          <div className="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto no-scrollbar relative z-10">
+          <div className="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto no-scrollbar relative z-10 justify-center">
             
-            <div className="flex flex-col max-w-[28rem] w-full mx-auto mt-2 md:mt-4 h-full">
+            <div className="flex flex-col lg:grid lg:grid-cols-12 lg:gap-12 xl:gap-20 max-w-[28rem] lg:max-w-5xl w-full mx-auto mt-2 md:mt-4 lg:mt-0 items-center justify-center">
               
-              {/* Main Player Area - No Card Wrapper */}
-              <div className="w-full flex flex-col flex-1 relative z-10 justify-center">
-                
-                <div className="w-[65vw] max-w-[16rem] aspect-square relative rounded-[2.5rem] mx-auto mb-6 group flex-shrink-0 flex items-center justify-center">
+              {/* Left Column: Cover Art and Title Info */}
+              <div className="lg:col-span-5 flex flex-col items-center justify-center w-full relative z-10">
+                <div className="w-[65vw] max-w-[16rem] lg:max-w-[22rem] lg:w-[22rem] aspect-square relative rounded-[2.5rem] lg:rounded-[3rem] mx-auto mb-6 lg:mb-8 group flex-shrink-0 flex items-center justify-center">
                   <div className={`absolute inset-[-35px] rounded-[3.5rem] bg-gradient-to-br from-[#0099FF] via-[#8A2BE2] to-[#db1fff] opacity-75 blur-[65px] transition-all duration-1000 ${isPlaying ? 'scale-[1.25] opacity-90 animate-liquid-glow' : 'scale-100 blur-[45px]'}`} />
 
                   {currentMeta?.coverUrl ? (
-                    <img src={currentMeta.coverUrl} alt="Album Art" className="w-full h-full object-cover rounded-[2.25rem] relative z-10 shadow-[0_20px_50px_rgba(0,0,0,0.8)] border border-white/10" />
-                  ) : (
-                    <div className={`w-full h-full rounded-[2.25rem] relative z-10 shadow-[0_20px_50px_rgba(0,0,0,0.8)] bg-gradient-to-br ${getFallbackColors(currentIndex >= 0 ? currentIndex : 0)} flex items-center justify-center border border-white/10`}>
+                    <img src={currentMeta.coverUrl} alt="Album Art" className="w-full h-full object-cover rounded-[2.25rem] lg:rounded-[2.75rem] relative z-10 shadow-[0_20px_50px_rgba(0,0,0,0.8)] border border-white/10" />
+                  ) : currentIndex >= 0 ? (
+                    <div className={`w-full h-full rounded-[2.25rem] lg:rounded-[2.75rem] relative z-10 shadow-[0_20px_50px_rgba(0,0,0,0.8)] bg-gradient-to-br ${getFallbackColors(currentIndex)} flex items-center justify-center border border-white/10`}>
                       <Music size={80} className="text-white/40" strokeWidth={1} />
+                    </div>
+                  ) : (
+                    <div className="w-full h-full rounded-[2.25rem] lg:rounded-[2.75rem] relative z-10 shadow-[0_20px_50px_rgba(0,0,0,0.8)] bg-gradient-to-b from-[#16141a] via-[#09080c] to-black flex flex-col items-center justify-center border border-white/[0.08] p-10 select-none">
+                      <DriveBeatLogo className="w-24 h-24 lg:w-32 lg:h-32 drop-shadow-[0_10px_30px_rgba(112,48,239,0.35)] hover:scale-105 transition-transform duration-500" />
                     </div>
                   )}
                 </div>
                 
-                <div className="text-center mb-3 px-2 relative z-10 flex-shrink-0">
-                  <h1 className="text-[1.6rem] font-bold text-white mb-1 truncate tracking-tight drop-shadow-lg">{title}</h1>
-                  <p className="text-[1rem] text-white/60 truncate tracking-wide drop-shadow-md">{artist}</p>
+                <div className="text-center mb-3 lg:mb-0 px-2 relative z-10 flex-shrink-0">
+                  <h1 className="text-[1.6rem] lg:text-[2rem] font-bold text-white mb-1 truncate tracking-tight drop-shadow-lg max-w-[17rem] lg:max-w-[22rem]">{title}</h1>
+                  <p className="text-[1rem] lg:text-[1.1rem] text-white/60 truncate tracking-wide drop-shadow-md max-w-[17rem] lg:max-w-[22rem]">{artist}</p>
                 </div>
+              </div>
 
+              {/* Right Column: Controls & Queue */}
+              <div className="lg:col-span-7 flex flex-col justify-center w-full relative z-10 mt-4 lg:mt-0">
                 {/* Custom Progress Bar */}
-                <div className="w-full mt-4 mb-4 relative z-10 px-2 flex-shrink-0">
+                <div className="w-full mt-4 mb-4 lg:mt-0 lg:mb-8 relative z-10 px-2 flex-shrink-0">
                   <div 
                     className="h-10 flex items-center group cursor-pointer relative"
                     onMouseDown={handleSeek}
@@ -1062,7 +1020,7 @@ export default function App() {
                 </div>
 
                 {/* Playback Controls */}
-                <div className="w-full flex items-center justify-between px-1 relative z-10 flex-shrink-0 mb-6">
+                <div className="w-full flex items-center justify-between px-1 relative z-10 flex-shrink-0 mb-6 lg:mb-10">
                   {/* Shuffle Button */}
                   <button 
                     onClick={toggleShuffle}
@@ -1118,46 +1076,46 @@ export default function App() {
                     {repeatMode === 2 ? <Repeat1 size={20} strokeWidth={2} /> : <Repeat size={20} strokeWidth={2} />}
                   </button>
                 </div>
-              </div>
 
-              {/* Up Next Section */}
-              {upcomingTracks.length > 0 && (
-                <div className="w-full mt-4 mb-4 px-2">
-                  <h3 className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em] mb-3">Up Next</h3>
-                  <div className="flex gap-4 justify-start overflow-x-auto no-scrollbar pb-1">
-                    {upcomingTracks.slice(0, 3).map(({ track, index }) => {
-                      const meta = metadataCache[track.id];
-                      const tTitle = meta?.title || (track.isStream ? (track.streamTitle || "Live Stream") : cleanFileName(track.file?.name || ""));
-                      return (
-                        <button
-                          key={track.id + index}
-                          onClick={() => {
-                            setCurrentIndex(index);
-                            setIsPlaying(true);
-                          }}
-                          className="flex flex-col relative text-left hover:scale-[1.03] transition-all duration-300 group w-[105px] sm:w-[120px] shrink-0"
-                        >
-                          <div className="w-[105px] h-[105px] sm:w-[120px] sm:h-[120px] rounded-[1.25rem] overflow-hidden mb-2 relative shadow-[0_12px_24px_rgba(0,0,0,0.5)] border border-white/[0.08] flex items-center justify-center bg-black/20 flex-shrink-0">
-                            {meta?.coverUrl ? (
-                              <img src={meta.coverUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 relative z-10" alt="" />
-                            ) : (
-                              <div className={`w-full h-full bg-gradient-to-br ${getFallbackColors(index)} flex items-center justify-center relative z-10`}>
-                                <Music size={24} className="text-white/40" strokeWidth={1.5} />
+                {/* Up Next Section */}
+                {upcomingTracks.length > 0 && (
+                  <div className="w-full mt-4 mb-4 px-2">
+                    <h3 className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em] mb-3">Up Next</h3>
+                    <div className="flex gap-[26px] sm:gap-8 lg:grid lg:grid-cols-4 lg:gap-6 justify-start lg:justify-between overflow-x-auto lg:overflow-visible no-scrollbar pb-1 w-full">
+                      {upcomingTracks.slice(0, 4).map(({ track, index }) => {
+                        const meta = metadataCache[track.id];
+                        const tTitle = meta?.title || (track.isStream ? (track.streamTitle || "Live Stream") : cleanFileName(track.file?.name || ""));
+                        return (
+                          <button
+                            key={track.id + index}
+                            onClick={() => {
+                              setCurrentIndex(index);
+                              setIsPlaying(true);
+                            }}
+                            className="flex flex-col relative text-left hover:scale-[1.03] transition-all duration-300 group w-[105px] sm:w-[120px] lg:w-auto shrink-0 lg:shrink"
+                          >
+                            <div className="w-[105px] h-[105px] sm:w-[120px] sm:h-[120px] lg:w-full lg:h-auto lg:aspect-square rounded-[1.25rem] overflow-hidden mb-2 relative shadow-[0_12px_24px_rgba(0,0,0,0.5)] border border-white/[0.08] flex items-center justify-center bg-black/20 flex-shrink-0 lg:flex-shrink">
+                              {meta?.coverUrl ? (
+                                <img src={meta.coverUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 relative z-10" alt="" />
+                              ) : (
+                                <div className={`w-full h-full bg-gradient-to-br ${getFallbackColors(index)} flex items-center justify-center relative z-10`}>
+                                  <Music size={24} className="text-white/40" strokeWidth={1.5} />
+                                </div>
+                              )}
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity z-20">
+                                <Play size={20} fill="currentColor" className="text-white" />
                               </div>
-                            )}
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity z-20">
-                              <Play size={20} fill="currentColor" className="text-white" />
                             </div>
-                          </div>
-                          
-                          <h4 className="text-white font-semibold text-[11px] truncate tracking-wide w-full px-1">{tTitle}</h4>
-                          <p className="text-white/40 text-[10px] truncate mt-0.5 w-full font-medium px-1">{meta?.artist || "Unknown Artist"}</p>
-                        </button>
-                      );
-                    })}
+                            
+                            <h4 className="text-white font-semibold text-[11px] truncate tracking-wide w-full px-1">{tTitle}</h4>
+                            <p className="text-white/40 text-[10px] truncate mt-0.5 w-full font-medium px-1">{meta?.artist || "Unknown Artist"}</p>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
 
             </div>
           </div>
