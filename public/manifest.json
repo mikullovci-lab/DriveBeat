@@ -3,7 +3,7 @@
   "short_name": "DriveBeat",
   "description": "DriveBeat is a futuristic high-fidelity web music player designed for the ultimate drive. Seamlessly stream, queue, and control your favorite tracks with an elegant dark glassmorphic layout.",
   "id": "com.mikkalab.drivebeat",
-  "start_url": "/",
+  "start_url": ".",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#020104",
@@ -24,7 +24,7 @@
       "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     }
   ],
   "screenshots": [

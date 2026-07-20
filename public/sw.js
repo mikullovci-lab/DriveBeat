@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drive-player-v2';
+const CACHE_NAME = 'drive-player-v3';
 const urlsToCache = [
   '/',
   '/index.html',
