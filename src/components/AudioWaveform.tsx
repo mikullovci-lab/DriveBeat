@@ -85,10 +85,7 @@ export const AudioWaveform: React.FC<AudioWaveformProps> = ({
             className="w-[3px] sm:w-[5px] md:w-[6px] rounded-full transition-all duration-75 ease-out shrink-0"
             style={{
               height: `${displayHeight}%`,
-              background: `linear-gradient(to top, #4547e0, #893ba9, #db1fff)`,
-              boxShadow: isPlaying 
-                ? `0 0 16px ${glowColor}60, 0 0 6px ${glowColor}30` 
-                : 'none',
+              backgroundColor: glowColor,
               opacity: isPlaying ? 0.3 + weightedRatio * 0.7 : 0.25 + weightedRatio * 0.35,
             }}
           />

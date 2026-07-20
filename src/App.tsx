@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   Play, Pause, SkipForward, SkipBack, Shuffle, Repeat, Repeat1, 
-  FolderOpen, Music, ListMusic, ChevronLeft, ChevronDown, MoreVertical, Heart, ListPlus, MoreHorizontal, Settings
+  FolderOpen, Music, ListMusic, ChevronLeft, ChevronDown, MoreVertical, Heart, ListPlus, MoreHorizontal, Settings,
+  Trash2, Edit3, Check, Plus, X, Share2
 } from 'lucide-react';
 // @ts-ignore
 import jsmediatags from 'jsmediatags/dist/jsmediatags.min.js';
@@ -115,6 +116,10 @@ export default function App() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showInstallBanner, setShowInstallBanner] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
+  const [isEditingPlaylist, setIsEditingPlaylist] = useState<boolean>(false);
+  const [showSavePlaylistModal, setShowSavePlaylistModal] = useState<boolean>(false);
+  const [savePlaylistName, setSavePlaylistName] = useState<string>("");
 
   const triggerToast = (message: string) => {
     setToastMessage(message);
@@ -149,6 +154,14 @@ export default function App() {
         if (state.repeatMode !== undefined) setRepeatMode(state.repeatMode);
       } catch (e) {}
     }
+
+    // Load saved playlists
+    const savedPlaylists = localStorage.getItem('drivebeat-playlists');
+    if (savedPlaylists) {
+      try {
+        setPlaylists(JSON.parse(savedPlaylists));
+      } catch (e) {}
+    }
   }, []);
 
   // Listen for PWA installation capability
@@ -174,6 +187,23 @@ export default function App() {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
   }, []);
+
+  // Auto scroll active track into view
+  useEffect(() => {
+    if (view === 'playlist' && currentIndex >= 0) {
+      // Small timeout to allow the DOM to render
+      const timer = setTimeout(() => {
+        const activeElem = document.getElementById(`track-item-${currentIndex}`);
+        if (activeElem) {
+          activeElem.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+          });
+        }
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [currentIndex, view]);
 
   const handleInstallPWA = async () => {
     if (!deferredPrompt) return;
@@ -305,59 +335,6 @@ export default function App() {
           count++;
         }
         volume = count > 0 ? (sum / count) / 255 : 0; // Normalize between 0.0 and 1.0
-
-        // --- DRAW REAL-TIME VISUALIZER ON CANVAS (Linear & Elegant) ---
-        if (canvasRef.current) {
-          const canvas = canvasRef.current;
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            const width = canvas.width;
-            const height = canvas.height;
-            ctx.clearRect(0, 0, width, height);
-            
-            const numBars = 36; // Sleek linear bars
-            const barWidth = (width / numBars) - 2; // Subtract spacing
-            const centerY = height / 2;
-            
-            for (let i = 0; i < numBars; i++) {
-              // Create a symmetric shape by mapping index relative to center
-              const distFromCenter = Math.abs(i - numBars / 2);
-              const mapIndex = Math.floor(((numBars / 2 - distFromCenter) / (numBars / 2)) * (bufferLength * 0.4));
-              
-              const value = dataArray[mapIndex] || 0;
-              const percent = value / 255;
-              const barHeight = Math.max(2, percent * height * 0.85); // elegant height
-              
-              const x = i * (barWidth + 2);
-              const y = centerY - barHeight / 2;
-              
-              ctx.beginPath();
-              if (ctx.roundRect) {
-                ctx.roundRect(x, y, barWidth, barHeight, 1.5);
-              } else {
-                ctx.rect(x, y, barWidth, barHeight);
-              }
-              
-              const colorPercent = i / numBars;
-              const color = getAccentColor(Math.floor(colorPercent * 10));
-              ctx.fillStyle = color;
-              
-              ctx.shadowBlur = isPlaying ? 3 : 0;
-              ctx.shadowColor = color;
-              ctx.fill();
-            }
-            ctx.shadowBlur = 0;
-          }
-        }
-      } else {
-        // Clear canvas if not playing
-        if (canvasRef.current) {
-          const canvas = canvasRef.current;
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-          }
-        }
       }
       
       // Floating slow wave factor using time
@@ -375,15 +352,15 @@ export default function App() {
 
       // Directly update DOM styles to bypass React overhead and maintain silky 60fps animations
       if (glowLeftRef.current) {
-        glowLeftRef.current.style.transform = `scale(${pulseLeft})`;
+        glowLeftRef.current.style.transform = `scale(${pulseLeft}) translate3d(0,0,0)`;
         glowLeftRef.current.style.opacity = `${Math.max(0.05, Math.min(0.35, opacityLeft))}`;
       }
       if (glowRightRef.current) {
-        glowRightRef.current.style.transform = `scale(${pulseRight})`;
+        glowRightRef.current.style.transform = `scale(${pulseRight}) translate3d(0,0,0)`;
         glowRightRef.current.style.opacity = `${Math.max(0.06, Math.min(0.40, opacityRight))}`;
       }
       if (glowCenterRef.current) {
-        glowCenterRef.current.style.transform = `scale(${pulseCenter})`;
+        glowCenterRef.current.style.transform = `scale(${pulseCenter}) translate3d(0,0,0)`;
         glowCenterRef.current.style.opacity = `${Math.max(0.02, Math.min(0.20, opacityCenter))}`;
       }
       
@@ -901,6 +878,81 @@ export default function App() {
     setRepeatMode((prev) => ((prev + 1) % 3) as 0 | 1 | 2);
   };
 
+  const handleDeleteTrack = (idxToDelete: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const trackToDelete = tracks[idxToDelete];
+    const newTracks = tracks.filter((_, i) => i !== idxToDelete);
+    setTracks(newTracks);
+
+    // If selected a specific playlist, update it
+    if (selectedPlaylistIndex !== null) {
+      const updatedPlaylists = [...playlists];
+      updatedPlaylists[selectedPlaylistIndex] = {
+        ...updatedPlaylists[selectedPlaylistIndex],
+        tracks: newTracks.map(t => ({
+          path: t.path,
+          title: metadataCache[t.id]?.title || t.streamTitle,
+          artist: metadataCache[t.id]?.artist,
+          isStream: !!t.isStream
+        }))
+      };
+      setPlaylists(updatedPlaylists);
+      localStorage.setItem('drivebeat-playlists', JSON.stringify(updatedPlaylists.map(pl => ({
+        name: pl.name,
+        tracks: pl.tracks.map(t => ({
+          path: t.path,
+          title: t.title,
+          artist: t.artist,
+          isStream: t.isStream
+        }))
+      }))));
+    } else {
+      // Editing all tracks list
+      setAllMp3s(prev => prev.filter(t => t.id !== trackToDelete.id));
+    }
+
+    // Adjust current index
+    if (currentIndex === idxToDelete) {
+      if (newTracks.length > 0) {
+        const nextIdx = idxToDelete >= newTracks.length ? newTracks.length - 1 : idxToDelete;
+        setCurrentIndex(nextIdx);
+        if (isPlaying) {
+          setTimeout(() => {
+            const activeAudio = getActiveAudio();
+            if (activeAudio) activeAudio.play().catch(() => {});
+          }, 50);
+        }
+      } else {
+        setCurrentIndex(-1);
+        setIsPlaying(false);
+      }
+    } else if (currentIndex > idxToDelete) {
+      setCurrentIndex(prev => prev - 1);
+    }
+
+    triggerToast("Track removed from list");
+  };
+
+  const handleShareApp = async () => {
+    const shareUrl = "https://drivebeat.mikkalab.com/";
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "DriveBeat",
+          text: "Play and curate your local music offline with gorgeous ambient velvet flow visualizers!",
+          url: shareUrl
+        });
+        triggerToast("Shared successfully!");
+      } catch (e) {
+        navigator.clipboard.writeText(shareUrl);
+        triggerToast("Link copied to clipboard! Share the beat 🎵");
+      }
+    } else {
+      navigator.clipboard.writeText(shareUrl);
+      triggerToast("Link copied to clipboard! Share the beat 🎵");
+    }
+  };
+
   const formatTime = (seconds: number) => {
     if (isNaN(seconds)) return "0:00";
     const m = Math.floor(seconds / 60);
@@ -1038,13 +1090,7 @@ export default function App() {
  
         <div className="mt-auto mb-2 w-full px-3">
           <button 
-            onClick={() => {
-              if (deferredPrompt) {
-                handleInstallPWA();
-              } else {
-                triggerToast("DriveBeat is installed & running perfectly!");
-              }
-            }}
+            onClick={() => setShowSettingsModal(true)}
             className="w-full aspect-square flex flex-col items-center justify-center text-white/50 hover:text-white transition-all rounded-2xl md:rounded-[1.5rem] hover:animate-liquid-square hover:scale-105 hover:bg-white/5 duration-500"
           >
             <Settings size={28} strokeWidth={1.5} />
@@ -1075,6 +1121,7 @@ export default function App() {
             className="absolute top-[10%] left-[5%] right-[5%] bottom-[5%] rounded-full opacity-[0.12] blur-[150px] transition-all duration-1000 z-10"
             style={{ 
               background: `radial-gradient(circle, ${getAccentColor(currentIndex >= 0 ? currentIndex : 0)} 0%, ${getAccentColor(currentIndex >= 0 ? currentIndex + 1 : 1)} 50%, transparent 100%)`,
+              willChange: 'transform, opacity'
             }} 
           />
 
@@ -1082,12 +1129,14 @@ export default function App() {
           <div 
             ref={glowLeftRef}
             className="absolute -bottom-[15%] -left-[10%] w-[750px] h-[750px] rounded-full bg-[#db1fff] opacity-[0.12] blur-[180px] z-10 transition-transform duration-100 ease-out" 
+            style={{ willChange: 'transform, opacity' }}
           />
 
           {/* 3. Right side - Deep royal purple/violet glow */}
           <div 
             ref={glowRightRef}
             className="absolute -bottom-[20%] right-[-15%] w-[850px] h-[850px] rounded-full bg-[#7030ef] opacity-[0.15] blur-[200px] z-10 transition-transform duration-100 ease-out" 
+            style={{ willChange: 'transform, opacity' }}
           />
 
           {/* 4. Elegant middle-right deep indigo/blue ambient highlight */}
@@ -1105,25 +1154,25 @@ export default function App() {
         </div>
 
         {view === 'player' ? (
-          <div className="flex-1 flex flex-col p-3 md:p-6 pb-24 md:pb-6 overflow-y-auto no-scrollbar relative z-10 justify-center">
+          <div className="flex-1 flex flex-col p-3 pt-10 sm:pt-14 md:p-6 pb-24 md:pb-6 overflow-y-auto no-scrollbar relative z-10 justify-center">
             
-            <div className="flex flex-col lg:grid lg:grid-cols-12 lg:gap-12 xl:gap-20 max-w-[28rem] lg:max-w-5xl w-full mx-auto mt-1 sm:mt-3 md:mt-4 lg:mt-0 items-center justify-center">
+            <div className="flex flex-col lg:grid lg:grid-cols-12 lg:gap-12 xl:gap-20 max-w-[28rem] lg:max-w-5xl w-full mx-auto mt-0 sm:mt-2 md:mt-4 lg:mt-0 items-center justify-center">
               
               {/* Left Column: Cover Art and Title Info */}
               <div className="lg:col-span-5 flex flex-col items-center justify-center w-full relative z-10">
-                <div className="w-[45vw] sm:w-[50vw] max-w-[10.5rem] sm:max-w-[13.5rem] lg:w-[22rem] lg:max-w-[22rem] aspect-square relative rounded-[1.75rem] sm:rounded-[2.25rem] lg:rounded-[3rem] mx-auto mb-4 sm:mb-6 lg:mb-8 group flex-shrink-0 flex items-center justify-center">
-                  <div className={`absolute inset-[-18px] sm:inset-[-35px] rounded-[2.25rem] sm:rounded-[3.5rem] bg-gradient-to-br from-[#0099FF] via-[#8A2BE2] to-[#db1fff] opacity-75 blur-[35px] sm:blur-[65px] transition-all duration-1000 ${isPlaying ? 'scale-[1.2] sm:scale-[1.25] opacity-90 animate-liquid-glow' : 'scale-100 blur-[25px] sm:blur-[45px]'}`} />
+                <div className="w-[38vw] sm:w-[46vw] max-w-[9.2rem] sm:max-w-[12rem] lg:w-[22rem] lg:max-w-[22rem] aspect-square relative rounded-[1.5rem] sm:rounded-[2.25rem] lg:rounded-[3rem] mx-auto mb-3 sm:mb-5 lg:mb-8 group flex-shrink-0 flex items-center justify-center">
+                  <div className={`absolute inset-[-14px] sm:inset-[-30px] rounded-[1.75rem] sm:rounded-[3rem] bg-gradient-to-br from-[#0099FF] via-[#8A2BE2] to-[#db1fff] opacity-75 blur-[25px] sm:blur-[55px] transition-all duration-1000 ${isPlaying ? 'scale-[1.18] sm:scale-[1.25] opacity-90 animate-liquid-glow' : 'scale-100 blur-[20px] sm:blur-[40px]'}`} />
 
                   {currentMeta?.coverUrl ? (
-                    <img src={currentMeta.coverUrl} alt="Album Art" className="w-full h-full object-cover rounded-[1.5rem] sm:rounded-[2rem] lg:rounded-[2.75rem] relative z-10 shadow-[0_20px_50px_rgba(0,0,0,0.8)] border border-white/10" />
+                    <img src={currentMeta.coverUrl} alt="Album Art" className="w-full h-full object-cover rounded-[1.25rem] sm:rounded-[1.75rem] lg:rounded-[2.75rem] relative z-10 shadow-[0_20px_50px_rgba(0,0,0,0.8)] border border-white/10" />
                   ) : currentIndex >= 0 ? (
-                    <div className={`w-full h-full rounded-[1.5rem] sm:rounded-[2rem] lg:rounded-[2.75rem] relative z-10 shadow-[0_20px_50px_rgba(0,0,0,0.8)] bg-gradient-to-br ${getFallbackColors(currentIndex)} flex items-center justify-center border border-white/10`}>
-                      <Music size={48} className="text-white/40 sm:hidden" strokeWidth={1} />
+                    <div className={`w-full h-full rounded-[1.25rem] sm:rounded-[1.75rem] lg:rounded-[2.75rem] relative z-10 shadow-[0_20px_50px_rgba(0,0,0,0.8)] bg-gradient-to-br ${getFallbackColors(currentIndex)} flex items-center justify-center border border-white/10`}>
+                      <Music size={40} className="text-white/40 sm:hidden" strokeWidth={1} />
                       <Music size={80} className="text-white/40 hidden sm:block" strokeWidth={1} />
                     </div>
                   ) : (
-                    <div className="w-full h-full rounded-[1.5rem] sm:rounded-[2rem] lg:rounded-[2.75rem] relative z-10 shadow-[0_20px_50px_rgba(0,0,0,0.8)] bg-gradient-to-b from-[#16141a] via-[#09080c] to-black flex flex-col items-center justify-center border border-white/[0.08] p-6 sm:p-10 select-none">
-                      <DriveBeatLogo className="w-16 h-16 sm:w-24 sm:h-24 lg:w-32 lg:h-32 drop-shadow-[0_10px_30px_rgba(112,48,239,0.35)] hover:scale-105 transition-transform duration-500" />
+                    <div className="w-full h-full rounded-[1.25rem] sm:rounded-[1.75rem] lg:rounded-[2.75rem] relative z-10 shadow-[0_20px_50px_rgba(0,0,0,0.8)] bg-gradient-to-b from-[#16141a] via-[#09080c] to-black flex flex-col items-center justify-center border border-white/[0.08] p-5 sm:p-10 select-none">
+                      <DriveBeatLogo className="w-14 h-14 sm:w-24 sm:h-24 lg:w-32 lg:h-32 drop-shadow-[0_10px_30px_rgba(112,48,239,0.35)] hover:scale-105 transition-transform duration-500" />
                     </div>
                   )}
                 </div>
@@ -1139,7 +1188,7 @@ export default function App() {
               {/* Right Column: Controls & Queue */}
               <div className="lg:col-span-7 flex flex-col justify-center w-full relative z-10 mt-2 sm:mt-4 lg:mt-0">
                 {/* Custom Progress Bar */}
-                <div className="w-full mt-1.5 sm:mt-4 mb-2 sm:mb-4 lg:mt-0 lg:mb-8 relative z-10 px-2 flex-shrink-0">
+                <div className="w-full mt-1 sm:mt-3.5 mb-1.5 sm:mb-3.5 lg:mt-0 lg:mb-8 relative z-10 px-2 flex-shrink-0">
                   <div 
                     className="h-8 sm:h-10 flex items-center group cursor-pointer relative"
                     onMouseDown={handleSeek}
@@ -1166,7 +1215,7 @@ export default function App() {
                 </div>
 
                 {/* Playback Controls */}
-                <div className="w-full flex items-center justify-between px-1 relative z-10 flex-shrink-0 mb-3 sm:mb-5 lg:mb-10">
+                <div className="w-full flex items-center justify-between px-1 relative z-10 flex-shrink-0 mb-2.5 sm:mb-4 lg:mb-10">
                   {/* Shuffle Button */}
                   <button 
                     onClick={toggleShuffle}
@@ -1225,23 +1274,19 @@ export default function App() {
 
                 {/* Mobile Screen Waveform Visualizer */}
                 <div className="lg:hidden flex flex-col items-center justify-center w-full px-4 mb-2 sm:mb-4 select-none mt-0.5 sm:mt-1">
-                  <div className="flex items-center gap-1.5 mb-1.5 opacity-30 font-mono text-[8px] tracking-[0.25em] uppercase text-white font-bold">
-                    <span className="w-1 h-1 rounded-full bg-[#db1fff]" />
-                    Stereo Visualizer
-                  </div>
                   <AudioWaveform 
                     isPlaying={isPlaying} 
                     barCount={28} 
                     className="h-6 sm:h-8 opacity-75" 
-                    glowColor={getAccentColor(currentIndex >= 0 ? currentIndex : 0)}
+                    glowColor="#db1fff"
                   />
                 </div>
 
                 {/* Up Next Section */}
                 {upcomingTracks.length > 0 && (
-                  <div className="w-full mt-4 mb-4 px-2">
-                    <h3 className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em] mb-3">Up Next</h3>
-                    <div className="flex gap-[26px] sm:gap-8 lg:grid lg:grid-cols-4 lg:gap-6 justify-start lg:justify-between overflow-x-auto lg:overflow-visible no-scrollbar pb-1 w-full">
+                  <div className="w-full mt-2 mb-2 lg:mt-4 lg:mb-4 px-2">
+                    <h3 className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em] mb-2.5">Up Next</h3>
+                    <div className="flex gap-4 sm:gap-6 lg:grid lg:grid-cols-4 lg:gap-6 justify-start lg:justify-between overflow-x-auto lg:overflow-visible no-scrollbar pb-1 w-full">
                       {upcomingTracks.slice(0, 4).map(({ track, index }) => {
                         const meta = metadataCache[track.id];
                         const tTitle = meta?.title || (track.isStream ? (track.streamTitle || "Live Stream") : cleanFileName(track.file?.name || ""));
@@ -1252,9 +1297,9 @@ export default function App() {
                               setCurrentIndex(index);
                               setIsPlaying(true);
                             }}
-                            className="flex flex-col relative text-left hover:scale-[1.03] transition-all duration-300 group w-[105px] sm:w-[120px] lg:w-auto shrink-0 lg:shrink"
+                            className="flex flex-col relative text-left hover:scale-[1.03] transition-all duration-300 group w-[92px] sm:w-[115px] lg:w-auto shrink-0 lg:shrink"
                           >
-                            <div className="w-[105px] h-[105px] sm:w-[120px] sm:h-[120px] lg:w-full lg:h-auto lg:aspect-square rounded-[1.25rem] overflow-hidden mb-2 relative shadow-[0_12px_24px_rgba(0,0,0,0.5)] border border-white/[0.08] flex items-center justify-center bg-black/20 flex-shrink-0 lg:flex-shrink">
+                            <div className="w-[92px] h-[92px] sm:w-[115px] sm:h-[115px] lg:w-full lg:h-auto lg:aspect-square rounded-[1.25rem] overflow-hidden mb-2 relative shadow-[0_12px_24px_rgba(0,0,0,0.5)] border border-white/[0.08] flex items-center justify-center bg-black/20 flex-shrink-0 lg:flex-shrink">
                               {meta?.coverUrl ? (
                                 <img src={meta.coverUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 relative z-10" alt="" />
                               ) : (
@@ -1263,7 +1308,7 @@ export default function App() {
                                 </div>
                               )}
                               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity z-20">
-                                <Play size={20} fill="currentColor" className="text-white" />
+                                <Play size={18} fill="currentColor" className="text-white" />
                               </div>
                             </div>
                             
@@ -1279,16 +1324,11 @@ export default function App() {
 
               {/* Desktop/Wide Screen Waveform Visualizer */}
               <div className="hidden lg:flex lg:col-span-12 flex-col items-center justify-center w-full max-w-3xl mx-auto mt-12 select-none relative z-10">
-                <div className="flex items-center gap-2 mb-3 opacity-40 font-mono text-[10px] tracking-[0.3em] uppercase text-white font-semibold">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#db1fff] animate-pulse" />
-                  Stereo Field Monitor
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#db1fff] animate-pulse" />
-                </div>
                 <AudioWaveform 
                   isPlaying={isPlaying} 
                   barCount={72} 
                   className="h-20 lg:h-24 opacity-95" 
-                  glowColor={getAccentColor(currentIndex >= 0 ? currentIndex : 0)}
+                  glowColor="#db1fff"
                 />
               </div>
 
@@ -1314,22 +1354,86 @@ export default function App() {
                   </button>
 
                   {playlists.map((pl, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => selectPlaylist(idx)}
-                      className={`px-5 py-3 rounded-full text-xs font-bold tracking-wider uppercase transition-all duration-300 border flex items-center gap-2 flex-shrink-0 ${
-                        selectedPlaylistIndex === idx
-                          ? 'bg-gradient-to-tr from-[#7030ef] to-[#db1fff] text-white border-transparent shadow-[0_4px_15px_rgba(219,31,255,0.35)]'
-                          : 'bg-white/[0.03] text-white/60 border-white/[0.05] hover:bg-white/[0.08] hover:text-white'
-                      }`}
-                    >
-                      <ListMusic size={14} />
-                      {pl.name} ({pl.tracks.length})
-                    </button>
+                    <div key={idx} className="relative flex-shrink-0 group flex items-center">
+                      <button
+                        onClick={() => selectPlaylist(idx)}
+                        className={`px-5 py-3 rounded-full text-xs font-bold tracking-wider uppercase transition-all duration-300 border flex items-center gap-2 pr-9 ${
+                          selectedPlaylistIndex === idx
+                            ? 'bg-gradient-to-tr from-[#7030ef] to-[#db1fff] text-white border-transparent shadow-[0_4px_15px_rgba(219,31,255,0.35)]'
+                            : 'bg-white/[0.03] text-white/60 border-white/[0.05] hover:bg-white/[0.08] hover:text-white'
+                        }`}
+                      >
+                        <ListMusic size={14} />
+                        {pl.name} ({pl.tracks.length})
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const updated = playlists.filter((_, i) => i !== idx);
+                          setPlaylists(updated);
+                          localStorage.setItem('drivebeat-playlists', JSON.stringify(updated));
+                          if (selectedPlaylistIndex === idx) {
+                            setSelectedPlaylistIndex(null);
+                            setTracks(allMp3s);
+                            setCurrentIndex(allMp3s.length > 0 ? 0 : -1);
+                          } else if (selectedPlaylistIndex !== null && selectedPlaylistIndex > idx) {
+                            setSelectedPlaylistIndex(prev => prev - 1);
+                          }
+                          triggerToast(`Playlist "${pl.name}" deleted`);
+                        }}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 rounded-full bg-white/10 hover:bg-red-500/80 text-white/50 hover:text-white flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 focus:opacity-100"
+                        title="Delete Playlist"
+                      >
+                        <X size={10} />
+                      </button>
+                    </div>
                   ))}
                 </div>
               </div>
             )}
+
+            {/* Playlist Queue Header with Edit List / Save Playlist actions */}
+            <div className="max-w-3xl w-full mx-auto px-1 flex-shrink-0 flex items-center justify-between mb-4 mt-2 gap-3">
+              <h3 className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em]">
+                {selectedPlaylistIndex !== null ? playlists[selectedPlaylistIndex].name : "All Tracks"}
+              </h3>
+              
+              {tracks.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setIsEditingPlaylist(!isEditingPlaylist)}
+                    className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all duration-300 border ${
+                      isEditingPlaylist
+                        ? 'bg-gradient-to-r from-red-500 to-amber-500 text-white border-transparent shadow-[0_4px_15px_rgba(239,68,68,0.25)]'
+                        : 'bg-white/[0.04] text-white/80 border-white/[0.08] hover:bg-white/[0.08] hover:text-white'
+                    }`}
+                  >
+                    {isEditingPlaylist ? (
+                      <>
+                        <Check size={14} className="text-white" />
+                        <span>Done Editing</span>
+                      </>
+                    ) : (
+                      <>
+                        <Edit3 size={14} />
+                        <span>Edit List</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setSavePlaylistName(selectedPlaylistIndex !== null ? playlists[selectedPlaylistIndex].name : "");
+                      setShowSavePlaylistModal(true);
+                    }}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all duration-300 border bg-white/[0.04] text-white/80 border-white/[0.08] hover:bg-[#db1fff]/10 hover:text-white hover:border-[#db1fff]/30 shadow-sm"
+                  >
+                    <ListPlus size={14} className="text-[#db1fff]" />
+                    <span>Save Playlist</span>
+                  </button>
+                </div>
+              )}
+            </div>
 
             {tracks.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
@@ -1349,16 +1453,21 @@ export default function App() {
                   
                   return (
                     <button
+                      id={`track-item-${idx}`}
                       key={track.id}
-                      onClick={() => {
-                        setCurrentIndex(idx);
-                        setIsPlaying(true);
+                      onClick={(e) => {
+                        if (isEditingPlaylist) {
+                          handleDeleteTrack(idx, e);
+                        } else {
+                          setCurrentIndex(idx);
+                          setIsPlaying(true);
+                        }
                       }}
-                      className={`w-full text-left p-4 rounded-[1.5rem] flex items-center gap-5 transition-all backdrop-blur-md ${
+                      className={`w-full text-left p-4 rounded-[1.5rem] flex items-center gap-5 transition-all backdrop-blur-md relative ${
                         isCurrent 
                           ? 'bg-[#0099FF]/10 border border-[#0099FF]/20 shadow-[0_8px_30px_rgba(0,153,255,0.08)]' 
                           : 'bg-[#0F111A]/60 border border-white/[0.03] hover:bg-[#161926]/80 shadow-[0_4px_15px_rgba(0,0,0,0.2)]'
-                      }`}
+                      } ${isEditingPlaylist ? 'hover:border-red-500/30' : ''}`}
                       style={{ minHeight: '96px' }}
                     >
                       <div className={`w-16 h-16 rounded-[1.25rem] bg-[#1a1f35] overflow-hidden flex-shrink-0 flex items-center justify-center border ${isCurrent ? 'border-[#0099FF]/30' : 'border-white/5'} shadow-inner`}>
@@ -1383,16 +1492,37 @@ export default function App() {
                           {tArtist}
                         </p>
                       </div>
-                      {isCurrent && isPlaying && (
+                      
+                      {isEditingPlaylist ? (
+                        <div 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteTrack(idx, e);
+                          }}
+                          className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all duration-300 cursor-pointer active:scale-90 flex-shrink-0"
+                          title="Remove Song"
+                        >
+                          <Trash2 size={18} />
+                        </div>
+                      ) : (
+                        isCurrent && isPlaying && (
                           <div className="flex gap-1.5 items-center h-6 px-3">
                             <div className="w-1.5 h-3 bg-[#0099FF] animate-bounce rounded-full" style={{ animationDelay: '0ms' }} />
                             <div className="w-1.5 h-6 bg-[#0099FF] animate-bounce rounded-full" style={{ animationDelay: '150ms' }} />
                             <div className="w-1.5 h-4 bg-[#0099FF] animate-bounce rounded-full" style={{ animationDelay: '300ms' }} />
                           </div>
+                        )
                       )}
                     </button>
                   );
                 })}
+
+                {/* Brand Logo and Watermark footer at the end of the scrollable tracks list */}
+                <div className="flex flex-col items-center justify-center pt-12 pb-16 opacity-30 select-none pointer-events-none">
+                  <DriveBeatLogo className="w-8 h-8 mb-2 drop-shadow-[0_4px_10px_rgba(219,31,255,0.4)]" />
+                  <p className="text-[10px] font-mono tracking-[0.3em] uppercase text-white font-bold">DriveBeat</p>
+                  <p className="text-[8px] text-white/50 mt-1 font-medium">drivebeat.mikkalab.com</p>
+                </div>
               </div>
             )}
           </div>
@@ -1488,19 +1618,227 @@ export default function App() {
 
           {/* Settings Tab */}
           <button 
-            onClick={() => {
-              if (deferredPrompt) {
-                handleInstallPWA();
-              } else {
-                triggerToast("DriveBeat is installed & running perfectly!");
-              }
-            }}
+            onClick={() => setShowSettingsModal(true)}
             className="flex flex-col items-center justify-center w-16 h-12 text-white/40 active:text-white transition-all duration-300"
           >
             <Settings size={22} strokeWidth={1.5} />
             <span className="text-[9px] mt-1 font-bold tracking-wider uppercase">Settings</span>
           </button>
         </nav>
+
+        {/* Beautiful, High-contrast, Glassmorphic Settings Modal */}
+        {showSettingsModal && (
+          <div className="fixed inset-0 bg-black/85 backdrop-blur-3xl z-[9999] flex items-center justify-center p-4 sm:p-6">
+            <div className="bg-[#0b0c16]/95 border border-white/[0.08] max-w-lg w-full rounded-[2.5rem] p-6 sm:p-8 flex flex-col relative shadow-[0_30px_70px_rgba(0,0,0,0.85)] max-h-[90vh] overflow-y-auto no-scrollbar">
+              
+              {/* Close Button */}
+              <button 
+                onClick={() => setShowSettingsModal(false)}
+                className="absolute top-5 right-5 w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 hover:text-white transition-all text-white/50 active:scale-95"
+              >
+                <X size={18} />
+              </button>
+
+              {/* Logo & Header */}
+              <div className="flex flex-col items-center text-center mt-3 mb-6">
+                <div className="w-16 h-16 rounded-[1.5rem] bg-[#1a1c2e] border border-white/10 flex items-center justify-center shadow-lg mb-3">
+                  <DriveBeatLogo className="w-10 h-10 drop-shadow-[0_4px_10px_rgba(219,31,255,0.4)]" />
+                </div>
+                <h2 className="text-2xl font-bold text-white tracking-tight">DriveBeat</h2>
+                <p className="text-xs font-mono text-[#db1fff] tracking-widest uppercase mt-1">Status: Operational</p>
+              </div>
+
+              {/* Settings / App Features Info Cards */}
+              <div className="space-y-4 mb-8">
+                
+                {/* Always-on screen status */}
+                <div className="p-4 rounded-3xl bg-white/[0.03] border border-white/[0.04] flex gap-4 items-start">
+                  <div className="p-2.5 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 mt-0.5">
+                    <span className="block w-2.5 h-2.5 rounded-full bg-green-400 animate-pulse" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white">Smart Screen Wake Lock</h3>
+                    <p className="text-xs text-white/50 mt-1 leading-relaxed">
+                      Your screen will automatically remain turned on and awake while music is playing. Perfect for active dashboards, driving, or ambient displays.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Local Folder & Offline Support */}
+                <div className="p-4 rounded-3xl bg-white/[0.03] border border-white/[0.04] flex gap-4 items-start">
+                  <div className="p-2.5 rounded-xl bg-[#db1fff]/10 border border-[#db1fff]/20 text-[#db1fff] mt-0.5">
+                    <Music size={16} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white">100% Offline & Native-First</h3>
+                    <p className="text-xs text-white/50 mt-1 leading-relaxed">
+                      No server overhead. Load files directly from your local directories to play music immediately. The entire application, database, and cache reside right on your machine.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Playlist Editing & Curation */}
+                <div className="p-4 rounded-3xl bg-white/[0.03] border border-white/[0.04] flex gap-4 items-start">
+                  <div className="p-2.5 rounded-xl bg-[#0099FF]/10 border border-[#0099FF]/20 text-[#0099FF] mt-0.5">
+                    <Edit3 size={16} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white">Playlist Curation</h3>
+                    <p className="text-xs text-white/50 mt-1 leading-relaxed">
+                      Tap the <strong className="text-white/80">Edit List</strong> button inside the playlist view to easily delete individual tracks and streams, and save your perfect list custom curated for any mood.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Performance optimized */}
+                <div className="p-4 rounded-3xl bg-white/[0.03] border border-white/[0.04] flex gap-4 items-start">
+                  <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 mt-0.5">
+                    <svg className="w-4 h-4 animate-pulse text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white">Velvet Glow Visualizations</h3>
+                    <p className="text-xs text-white/50 mt-1 leading-relaxed">
+                      Optimized for buttery-smooth performance. Uses pre-rendered layers and hardware-accelerated transforms to save battery on your mobile device.
+                    </p>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Actions Button Panel */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                
+                {/* Share App Button */}
+                <button
+                  onClick={handleShareApp}
+                  className="w-full h-13 rounded-2xl bg-gradient-to-r from-[#0099FF] to-[#db1fff] hover:opacity-90 active:scale-95 transition-all text-white font-bold text-sm flex items-center justify-center gap-2 shadow-[0_4px_15px_rgba(0,153,255,0.3)]"
+                >
+                  <Share2 size={16} />
+                  <span>Share DriveBeat</span>
+                </button>
+
+                {/* Install PWA Button / Status */}
+                {deferredPrompt ? (
+                  <button
+                    onClick={() => {
+                      setShowSettingsModal(false);
+                      handleInstallPWA();
+                    }}
+                    className="w-full h-13 rounded-2xl bg-white/[0.06] hover:bg-white/[0.1] active:scale-95 border border-white/[0.08] transition-all text-white font-bold text-sm flex items-center justify-center gap-2"
+                  >
+                    <FolderOpen size={16} className="text-[#db1fff]" />
+                    <span>Install App</span>
+                  </button>
+                ) : (
+                  <div className="w-full h-13 rounded-2xl bg-white/[0.02] border border-white/[0.05] text-white/40 font-bold text-xs flex items-center justify-center gap-2 select-none">
+                    <Check size={14} className="text-green-500" />
+                    <span>App is Installed</span>
+                  </div>
+                )}
+
+              </div>
+
+              {/* Version watermark */}
+              <p className="text-[10px] text-center text-white/20 mt-6 font-mono">DriveBeat v1.4.2 • MikkaLab</p>
+
+            </div>
+          </div>
+        )}
+
+        {/* Beautiful glassmorphic Save Playlist Modal */}
+        {showSavePlaylistModal && (
+          <div className="fixed inset-0 bg-black/85 backdrop-blur-3xl z-[9999] flex items-center justify-center p-4">
+            <div className="bg-[#0b0c16]/95 border border-white/[0.08] max-w-md w-full rounded-[2rem] p-6 sm:p-8 flex flex-col relative shadow-[0_30px_70px_rgba(0,0,0,0.85)] animate-fade-in">
+              <button 
+                onClick={() => setShowSavePlaylistModal(false)}
+                className="absolute top-5 right-5 w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 hover:text-white transition-all text-white/50 active:scale-95"
+              >
+                <X size={18} />
+              </button>
+
+              <h3 className="text-xl font-bold text-white mb-2">Save Playlist</h3>
+              <p className="text-xs text-white/50 mb-6 leading-relaxed">
+                Save the current list of {tracks.length} track(s) as a custom playlist. It will be saved on your device for future sessions.
+              </p>
+
+              <div className="space-y-4 mb-6">
+                <div>
+                  <label className="block text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] mb-2">Playlist Name</label>
+                  <input 
+                    type="text"
+                    value={savePlaylistName}
+                    onChange={(e) => setSavePlaylistName(e.target.value)}
+                    placeholder="e.g. Late Night Mix, Driving Beats"
+                    className="w-full h-12 bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 text-white placeholder-white/30 text-sm focus:outline-none focus:border-[#db1fff]/60 focus:bg-white/[0.06] transition-all"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && savePlaylistName.trim()) {
+                        // Trigger the same save click behavior on Enter keypress
+                        document.getElementById('save-playlist-confirm-btn')?.click();
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setShowSavePlaylistModal(false)}
+                  className="px-5 h-12 rounded-xl text-white/60 hover:text-white font-bold text-sm bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  id="save-playlist-confirm-btn"
+                  onClick={() => {
+                    if (!savePlaylistName.trim()) {
+                      triggerToast("Please enter a playlist name");
+                      return;
+                    }
+                    
+                    const updatedTracks = tracks.map(t => ({
+                      path: t.path,
+                      title: metadataCache[t.id]?.title || t.streamTitle || cleanFileName(t.file?.name || t.path.split('/').pop() || ""),
+                      artist: metadataCache[t.id]?.artist,
+                      isStream: !!t.isStream
+                    }));
+
+                    const existingIdx = playlists.findIndex(pl => pl.name.toLowerCase() === savePlaylistName.trim().toLowerCase());
+                    let updatedPlaylists = [...playlists];
+                    
+                    if (existingIdx !== -1) {
+                      updatedPlaylists[existingIdx] = {
+                        name: savePlaylistName.trim(),
+                        tracks: updatedTracks
+                      };
+                      triggerToast(`Playlist "${savePlaylistName.trim()}" updated! 💾`);
+                    } else {
+                      const newPl: Playlist = {
+                        name: savePlaylistName.trim(),
+                        tracks: updatedTracks
+                      };
+                      updatedPlaylists.push(newPl);
+                      triggerToast(`Playlist "${savePlaylistName.trim()}" saved! 💾`);
+                    }
+
+                    setPlaylists(updatedPlaylists);
+                    localStorage.setItem('drivebeat-playlists', JSON.stringify(updatedPlaylists));
+                    
+                    const targetIdx = existingIdx !== -1 ? existingIdx : updatedPlaylists.length - 1;
+                    setSelectedPlaylistIndex(targetIdx);
+                    setShowSavePlaylistModal(false);
+                    setSavePlaylistName("");
+                  }}
+                  className="px-5 h-12 rounded-xl bg-gradient-to-r from-[#0099FF] to-[#db1fff] hover:opacity-95 active:scale-95 text-white font-bold text-sm shadow-[0_4px_15px_rgba(219,31,255,0.25)] transition-all"
+                >
+                  Save Playlist
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
