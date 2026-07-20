@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 // @ts-ignore
 import jsmediatags from 'jsmediatags/dist/jsmediatags.min.js';
+import { AudioWaveform } from './components/AudioWaveform';
 
 const getFallbackColors = (index: number) => {
   const colors = [
@@ -186,6 +187,53 @@ export default function App() {
     setDeferredPrompt(null);
     setShowInstallBanner(false);
   };
+
+  // Keep screen awake while music is playing using Screen Wake Lock API
+  useEffect(() => {
+    let wakeLock: any = null;
+
+    const requestWakeLock = async () => {
+      if (!('wakeLock' in navigator)) return;
+      try {
+        wakeLock = await (navigator as any).wakeLock.request('screen');
+        console.log('Screen Wake Lock acquired successfully.');
+      } catch (err: any) {
+        console.warn(`Failed to acquire Screen Wake Lock: ${err.name}, ${err.message}`);
+      }
+    };
+
+    const releaseWakeLock = async () => {
+      if (wakeLock) {
+        try {
+          await wakeLock.release();
+          wakeLock = null;
+          console.log('Screen Wake Lock released.');
+        } catch (err) {
+          console.error('Error releasing Screen Wake Lock:', err);
+        }
+      }
+    };
+
+    if (isPlaying) {
+      requestWakeLock();
+    } else {
+      releaseWakeLock();
+    }
+
+    // Handle tab visibility change (re-acquire lock if page becomes visible again)
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible' && isPlaying) {
+        await requestWakeLock();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      releaseWakeLock();
+    };
+  }, [isPlaying]);
 
   // Save state on change
   useEffect(() => {
@@ -864,7 +912,7 @@ export default function App() {
   const currentMeta = currentTrack ? metadataCache[currentTrack.id] : null;
   
   const title = currentMeta?.title || (currentTrack ? (currentTrack.isStream ? (currentTrack.streamTitle || "Live Stream") : cleanFileName(currentTrack.file?.name || "")) : "No music loaded");
-  const artist = currentMeta?.artist || "Tap 'Load' to begin";
+  const artist = currentMeta?.artist || (currentTrack ? "Unknown Artist" : "");
 
   // Calculate upcoming tracks
   const upcomingTracks = [];
@@ -1057,45 +1105,48 @@ export default function App() {
         </div>
 
         {view === 'player' ? (
-          <div className="flex-1 flex flex-col p-4 md:p-6 pb-28 md:pb-6 overflow-y-auto no-scrollbar relative z-10 justify-center">
+          <div className="flex-1 flex flex-col p-3 md:p-6 pb-24 md:pb-6 overflow-y-auto no-scrollbar relative z-10 justify-center">
             
-            <div className="flex flex-col lg:grid lg:grid-cols-12 lg:gap-12 xl:gap-20 max-w-[28rem] lg:max-w-5xl w-full mx-auto mt-2 md:mt-4 lg:mt-0 items-center justify-center">
+            <div className="flex flex-col lg:grid lg:grid-cols-12 lg:gap-12 xl:gap-20 max-w-[28rem] lg:max-w-5xl w-full mx-auto mt-1 sm:mt-3 md:mt-4 lg:mt-0 items-center justify-center">
               
               {/* Left Column: Cover Art and Title Info */}
               <div className="lg:col-span-5 flex flex-col items-center justify-center w-full relative z-10">
-                <div className="w-[65vw] max-w-[16rem] lg:max-w-[22rem] lg:w-[22rem] aspect-square relative rounded-[2.5rem] lg:rounded-[3rem] mx-auto mb-6 lg:mb-8 group flex-shrink-0 flex items-center justify-center">
-                  <div className={`absolute inset-[-35px] rounded-[3.5rem] bg-gradient-to-br from-[#0099FF] via-[#8A2BE2] to-[#db1fff] opacity-75 blur-[65px] transition-all duration-1000 ${isPlaying ? 'scale-[1.25] opacity-90 animate-liquid-glow' : 'scale-100 blur-[45px]'}`} />
+                <div className="w-[45vw] sm:w-[50vw] max-w-[10.5rem] sm:max-w-[13.5rem] lg:w-[22rem] lg:max-w-[22rem] aspect-square relative rounded-[1.75rem] sm:rounded-[2.25rem] lg:rounded-[3rem] mx-auto mb-4 sm:mb-6 lg:mb-8 group flex-shrink-0 flex items-center justify-center">
+                  <div className={`absolute inset-[-18px] sm:inset-[-35px] rounded-[2.25rem] sm:rounded-[3.5rem] bg-gradient-to-br from-[#0099FF] via-[#8A2BE2] to-[#db1fff] opacity-75 blur-[35px] sm:blur-[65px] transition-all duration-1000 ${isPlaying ? 'scale-[1.2] sm:scale-[1.25] opacity-90 animate-liquid-glow' : 'scale-100 blur-[25px] sm:blur-[45px]'}`} />
 
                   {currentMeta?.coverUrl ? (
-                    <img src={currentMeta.coverUrl} alt="Album Art" className="w-full h-full object-cover rounded-[2.25rem] lg:rounded-[2.75rem] relative z-10 shadow-[0_20px_50px_rgba(0,0,0,0.8)] border border-white/10" />
+                    <img src={currentMeta.coverUrl} alt="Album Art" className="w-full h-full object-cover rounded-[1.5rem] sm:rounded-[2rem] lg:rounded-[2.75rem] relative z-10 shadow-[0_20px_50px_rgba(0,0,0,0.8)] border border-white/10" />
                   ) : currentIndex >= 0 ? (
-                    <div className={`w-full h-full rounded-[2.25rem] lg:rounded-[2.75rem] relative z-10 shadow-[0_20px_50px_rgba(0,0,0,0.8)] bg-gradient-to-br ${getFallbackColors(currentIndex)} flex items-center justify-center border border-white/10`}>
-                      <Music size={80} className="text-white/40" strokeWidth={1} />
+                    <div className={`w-full h-full rounded-[1.5rem] sm:rounded-[2rem] lg:rounded-[2.75rem] relative z-10 shadow-[0_20px_50px_rgba(0,0,0,0.8)] bg-gradient-to-br ${getFallbackColors(currentIndex)} flex items-center justify-center border border-white/10`}>
+                      <Music size={48} className="text-white/40 sm:hidden" strokeWidth={1} />
+                      <Music size={80} className="text-white/40 hidden sm:block" strokeWidth={1} />
                     </div>
                   ) : (
-                    <div className="w-full h-full rounded-[2.25rem] lg:rounded-[2.75rem] relative z-10 shadow-[0_20px_50px_rgba(0,0,0,0.8)] bg-gradient-to-b from-[#16141a] via-[#09080c] to-black flex flex-col items-center justify-center border border-white/[0.08] p-10 select-none">
-                      <DriveBeatLogo className="w-24 h-24 lg:w-32 lg:h-32 drop-shadow-[0_10px_30px_rgba(112,48,239,0.35)] hover:scale-105 transition-transform duration-500" />
+                    <div className="w-full h-full rounded-[1.5rem] sm:rounded-[2rem] lg:rounded-[2.75rem] relative z-10 shadow-[0_20px_50px_rgba(0,0,0,0.8)] bg-gradient-to-b from-[#16141a] via-[#09080c] to-black flex flex-col items-center justify-center border border-white/[0.08] p-6 sm:p-10 select-none">
+                      <DriveBeatLogo className="w-16 h-16 sm:w-24 sm:h-24 lg:w-32 lg:h-32 drop-shadow-[0_10px_30px_rgba(112,48,239,0.35)] hover:scale-105 transition-transform duration-500" />
                     </div>
                   )}
                 </div>
                 
-                <div className="text-center mb-3 lg:mb-0 px-2 relative z-10 flex-shrink-0">
-                  <h1 className="text-[1.6rem] lg:text-[2rem] font-bold text-white mb-1 truncate tracking-tight drop-shadow-lg max-w-[17rem] lg:max-w-[22rem]">{title}</h1>
-                  <p className="text-[1rem] lg:text-[1.1rem] text-white/60 truncate tracking-wide drop-shadow-md max-w-[17rem] lg:max-w-[22rem]">{artist}</p>
+                <div className="text-center mb-1.5 sm:mb-3 lg:mb-0 px-2 relative z-10 flex-shrink-0">
+                  <h1 className="text-[1.3rem] sm:text-[1.6rem] lg:text-[2rem] font-bold text-white mb-0.5 sm:mb-1 truncate tracking-tight drop-shadow-lg max-w-[15rem] sm:max-w-[17rem] lg:max-w-[22rem]">{title}</h1>
+                  {artist && (
+                    <p className="text-[0.9rem] sm:text-[1rem] lg:text-[1.1rem] text-white/60 truncate tracking-wide drop-shadow-md max-w-[15rem] sm:max-w-[17rem] lg:max-w-[22rem]">{artist}</p>
+                  )}
                 </div>
               </div>
 
               {/* Right Column: Controls & Queue */}
-              <div className="lg:col-span-7 flex flex-col justify-center w-full relative z-10 mt-4 lg:mt-0">
+              <div className="lg:col-span-7 flex flex-col justify-center w-full relative z-10 mt-2 sm:mt-4 lg:mt-0">
                 {/* Custom Progress Bar */}
-                <div className="w-full mt-4 mb-4 lg:mt-0 lg:mb-8 relative z-10 px-2 flex-shrink-0">
+                <div className="w-full mt-1.5 sm:mt-4 mb-2 sm:mb-4 lg:mt-0 lg:mb-8 relative z-10 px-2 flex-shrink-0">
                   <div 
-                    className="h-10 flex items-center group cursor-pointer relative"
+                    className="h-8 sm:h-10 flex items-center group cursor-pointer relative"
                     onMouseDown={handleSeek}
                     onTouchStart={handleSeek}
                     ref={progressRef}
                   >
-                    <div className="w-full h-2 bg-white/[0.06] backdrop-blur-md rounded-md overflow-hidden absolute pointer-events-none border border-white/[0.03]">
+                    <div className="w-full h-1.5 sm:h-2 bg-white/[0.06] backdrop-blur-md rounded-md overflow-hidden absolute pointer-events-none border border-white/[0.03]">
                       <div 
                         className="h-full bg-gradient-to-r from-[#7030ef] to-[#db1fff] rounded-md relative"
                         style={{ width: `${duration ? (progress / duration) * 100 : 0}%` }}
@@ -1104,42 +1155,42 @@ export default function App() {
                       </div>
                     </div>
                     <div 
-                      className="w-4 h-4 bg-white rounded-[0.35rem] shadow-[0_0_12px_rgba(219,31,255,0.85)] absolute pointer-events-none transform -translate-x-1/2 -translate-y-1/2 top-1/2 transition-transform group-hover:scale-125 border border-white"
+                      className="w-3.5 h-3.5 sm:w-4 sm:h-4 bg-white rounded-[0.35rem] shadow-[0_0_12px_rgba(219,31,255,0.85)] absolute pointer-events-none transform -translate-x-1/2 -translate-y-1/2 top-1/2 transition-transform group-hover:scale-125 border border-white"
                       style={{ left: `${duration ? (progress / duration) * 100 : 0}%` }}
                     />
                   </div>
-                  <div className="flex justify-between text-[11px] text-white/40 mt-1 font-mono tracking-widest font-medium">
+                  <div className="flex justify-between text-[10px] sm:text-[11px] text-white/40 mt-0.5 font-mono tracking-widest font-medium">
                     <span>{formatTime(progress)}</span>
                     <span>-{formatTime(duration - progress)}</span>
                   </div>
                 </div>
 
                 {/* Playback Controls */}
-                <div className="w-full flex items-center justify-between px-1 relative z-10 flex-shrink-0 mb-6 lg:mb-10">
+                <div className="w-full flex items-center justify-between px-1 relative z-10 flex-shrink-0 mb-3 sm:mb-5 lg:mb-10">
                   {/* Shuffle Button */}
                   <button 
                     onClick={toggleShuffle}
-                    className={`w-14 h-14 flex items-center justify-center rounded-2xl hover:animate-liquid-square hover:scale-110 active:scale-95 transition-all duration-300 backdrop-blur-xl border ${
+                    className={`w-11 h-11 sm:w-14 sm:h-14 flex items-center justify-center rounded-2xl hover:animate-liquid-square hover:scale-110 active:scale-95 transition-all duration-300 backdrop-blur-xl border ${
                       isShuffle 
                         ? 'text-white bg-gradient-to-tr from-[#7030ef]/40 to-[#db1fff]/40 border-[#db1fff]/45 shadow-[0_0_20px_rgba(219,31,255,0.35)]' 
                         : 'text-white/50 bg-white/[0.03] border-white/[0.08] hover:text-white hover:bg-white/[0.08] hover:border-white/[0.18]'
                     } shadow-[0_8px_32px_rgba(0,0,0,0.35)]`}
                   >
-                    <Shuffle size={20} strokeWidth={2} />
+                    <Shuffle size={18} strokeWidth={2} />
                   </button>
                   
                   {/* Prev Button */}
                   <button 
                     onClick={handlePrev}
-                    className="w-14 h-14 flex items-center justify-center text-white/70 rounded-2xl transition-all duration-300 hover:scale-110 active:scale-95 hover:animate-liquid-square bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] hover:border-white/[0.18] shadow-[0_8px_32px_rgba(0,0,0,0.35)] hover:text-[#db1fff] hover:bg-white/[0.08]"
+                    className="w-11 h-11 sm:w-14 sm:h-14 flex items-center justify-center text-white/70 rounded-2xl transition-all duration-300 hover:scale-110 active:scale-95 hover:animate-liquid-square bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] hover:border-white/[0.18] shadow-[0_8px_32px_rgba(0,0,0,0.35)] hover:text-[#db1fff] hover:bg-white/[0.08]"
                   >
-                    <SkipBack size={24} fill="currentColor" />
+                    <SkipBack size={20} fill="currentColor" />
                   </button>
                   
                   {/* Main Play/Pause Button */}
                   <button 
                     onClick={togglePlay}
-                    className={`w-20 h-20 bg-gradient-to-tr from-[#7030ef] via-[#9f50f3] to-[#db1fff] text-white hover:scale-105 active:scale-95 transition-all duration-300 relative overflow-hidden border border-white/20 rounded-[1.65rem] ${
+                    className={`w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-tr from-[#7030ef] via-[#9f50f3] to-[#db1fff] text-white hover:scale-105 active:scale-95 transition-all duration-300 relative overflow-hidden border border-white/20 rounded-[1.3rem] sm:rounded-[1.65rem] ${
                       isPlaying 
                         ? 'animate-liquid-square scale-[1.03] shadow-[0_15px_45px_rgba(219,31,255,0.65)]' 
                         : 'hover:animate-liquid-square shadow-[0_12px_35px_rgba(112,48,239,0.5)]'
@@ -1147,29 +1198,43 @@ export default function App() {
                   >
                     <div className="absolute inset-0 bg-white/5 pointer-events-none" />
                     <div className="relative z-10 flex items-center justify-center w-full h-full">
-                      {isPlaying ? <Pause size={32} fill="currentColor" /> : <Play size={32} fill="currentColor" className="ml-1" />}
+                      {isPlaying ? <Pause size={26} fill="currentColor" /> : <Play size={26} fill="currentColor" className="ml-0.5 sm:ml-1" />}
                     </div>
                   </button>
                   
                   {/* Next Button */}
                   <button 
                     onClick={() => handleNext()}
-                    className="w-14 h-14 flex items-center justify-center text-white/70 rounded-2xl transition-all duration-300 hover:scale-110 active:scale-95 hover:animate-liquid-square bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] hover:border-white/[0.18] shadow-[0_8px_32px_rgba(0,0,0,0.35)] hover:text-[#db1fff] hover:bg-white/[0.08]"
+                    className="w-11 h-11 sm:w-14 sm:h-14 flex items-center justify-center text-white/70 rounded-2xl transition-all duration-300 hover:scale-110 active:scale-95 hover:animate-liquid-square bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] hover:border-white/[0.18] shadow-[0_8px_32px_rgba(0,0,0,0.35)] hover:text-[#db1fff] hover:bg-white/[0.08]"
                   >
-                    <SkipForward size={24} fill="currentColor" />
+                    <SkipForward size={20} fill="currentColor" />
                   </button>
                   
                   {/* Repeat Button */}
                   <button 
                     onClick={toggleRepeat}
-                    className={`w-14 h-14 flex items-center justify-center rounded-2xl hover:animate-liquid-square hover:scale-110 active:scale-95 transition-all duration-300 backdrop-blur-xl border ${
+                    className={`w-11 h-11 sm:w-14 sm:h-14 flex items-center justify-center rounded-2xl hover:animate-liquid-square hover:scale-110 active:scale-95 transition-all duration-300 backdrop-blur-xl border ${
                       repeatMode !== 0 
                         ? 'text-white bg-gradient-to-tr from-[#0055ff]/40 to-[#7030ef]/40 border-[#7030ef]/45 shadow-[0_0_20px_rgba(112,48,239,0.35)]' 
                         : 'text-white/50 bg-white/[0.03] border-white/[0.08] hover:text-white hover:bg-white/[0.08] hover:border-white/[0.18]'
                     } shadow-[0_8px_32px_rgba(0,0,0,0.35)]`}
                   >
-                    {repeatMode === 2 ? <Repeat1 size={20} strokeWidth={2} /> : <Repeat size={20} strokeWidth={2} />}
+                    {repeatMode === 2 ? <Repeat1 size={18} strokeWidth={2} /> : <Repeat size={18} strokeWidth={2} />}
                   </button>
+                </div>
+
+                {/* Mobile Screen Waveform Visualizer */}
+                <div className="lg:hidden flex flex-col items-center justify-center w-full px-4 mb-2 sm:mb-4 select-none mt-0.5 sm:mt-1">
+                  <div className="flex items-center gap-1.5 mb-1.5 opacity-30 font-mono text-[8px] tracking-[0.25em] uppercase text-white font-bold">
+                    <span className="w-1 h-1 rounded-full bg-[#db1fff]" />
+                    Stereo Visualizer
+                  </div>
+                  <AudioWaveform 
+                    isPlaying={isPlaying} 
+                    barCount={28} 
+                    className="h-6 sm:h-8 opacity-75" 
+                    glowColor={getAccentColor(currentIndex >= 0 ? currentIndex : 0)}
+                  />
                 </div>
 
                 {/* Up Next Section */}
@@ -1210,6 +1275,21 @@ export default function App() {
                     </div>
                   </div>
                 )}
+              </div>
+
+              {/* Desktop/Wide Screen Waveform Visualizer */}
+              <div className="hidden lg:flex lg:col-span-12 flex-col items-center justify-center w-full max-w-3xl mx-auto mt-12 select-none relative z-10">
+                <div className="flex items-center gap-2 mb-3 opacity-40 font-mono text-[10px] tracking-[0.3em] uppercase text-white font-semibold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#db1fff] animate-pulse" />
+                  Stereo Field Monitor
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#db1fff] animate-pulse" />
+                </div>
+                <AudioWaveform 
+                  isPlaying={isPlaying} 
+                  barCount={72} 
+                  className="h-20 lg:h-24 opacity-95" 
+                  glowColor={getAccentColor(currentIndex >= 0 ? currentIndex : 0)}
+                />
               </div>
 
             </div>
