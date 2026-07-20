@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.mikkalab.drivebeat.twa",
+        "sha256_cert_fingerprints": ["1A:2C:1C:4C:14:0E:DD:26:FB:92:D0:F5:93:FD:C5:2A:10:74:64:C4:9A:97:FF:D0:8B:57:BD:11:26:3C:4D:7B"]
+      }
+    }]
