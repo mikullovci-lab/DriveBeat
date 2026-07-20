@@ -572,6 +572,10 @@ export default function App() {
       },
       onError: function(error) {
         console.warn("Could not read ID3 tags for", track.file.name, error);
+        setMetadataCache(prev => ({
+          ...prev,
+          [track.id]: {}
+        }));
       }
     });
   };
@@ -1008,6 +1012,15 @@ export default function App() {
     }
   }
 
+  // Pre-fetch metadata for upcoming tracks
+  useEffect(() => {
+    upcomingTracks.forEach(({ track }) => {
+      if (!track.isStream && track.file && !metadataCache[track.id]) {
+        fetchMetadata(track);
+      }
+    });
+  }, [currentIndex, tracks.length, isShuffle, shuffledIndices]);
+
   return (
     <div className="min-h-screen bg-[#020104] text-[#fafa] font-sans flex overflow-hidden pb-safe select-none">
       {/* PWA Install Promotion Banner */}
@@ -1315,7 +1328,7 @@ export default function App() {
 
                 {/* Up Next Section */}
                 {upcomingTracks.length > 0 && (
-                  <div className="w-full mt-2 mb-2 lg:mt-4 lg:mb-4 px-2">
+                  <div className="w-full mt-4 mb-2 lg:mt-6 lg:mb-4 px-2">
                     <h3 className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em] mb-2.5">Up Next</h3>
                     <div className="flex gap-4 sm:gap-6 lg:grid lg:grid-cols-4 lg:gap-6 justify-start lg:justify-between overflow-x-auto lg:overflow-visible no-scrollbar pb-1 w-full">
                       {upcomingTracks.slice(0, 4).map(({ track, index }) => {
@@ -1412,7 +1425,7 @@ export default function App() {
                           }
                           triggerToast(`Playlist "${pl.name}" deleted`);
                         }}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 rounded-full bg-white/10 hover:bg-red-500/80 text-white/50 hover:text-white flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 focus:opacity-100"
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 rounded-full bg-white/10 hover:bg-red-500/80 text-white/70 sm:text-white/50 hover:text-white flex items-center justify-center transition-all opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100"
                         title="Delete Playlist"
                       >
                         <X size={10} />
